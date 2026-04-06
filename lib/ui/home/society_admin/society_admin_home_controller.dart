@@ -31,21 +31,18 @@ class SocietyAdminHomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadMySociety();
+    _initData();
+  }
+
+  Future<void> _initData() async {
+    await _loadMySociety();
     _listenBlockAdmins();
   }
 
-  void _listenBlockAdmins() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    
-    final userSnapshot = await FirebaseDatabase.instance.ref('users/$uid').get();
-    if (!userSnapshot.exists || userSnapshot.value is! Map) return;
+  void _listenBlockAdmins() {
+    if (societyId == null || societyId!.isEmpty) return;
 
-    final userData = Map<dynamic, dynamic>.from(userSnapshot.value as Map);
-    final sId = userData['societyId']?.toString();
-    if (sId == null || sId.isEmpty) return;
-
+    _adminSubscription?.cancel();
     _adminSubscription = FirebaseDatabase.instance.ref('block_admins').onValue.listen((event) {
       final value = event.snapshot.value;
       if (value == null || value is! Map) {
@@ -61,7 +58,7 @@ class SocietyAdminHomeController extends GetxController {
       for (final entry in map.entries) {
         if (entry.value is! Map) continue;
         final adminData = Map<dynamic, dynamic>.from(entry.value as Map);
-        if (adminData['societyId'] == sId && adminData['isActive'] == true) {
+        if (adminData['societyId'] == societyId && adminData['isActive'] == true) {
           adminData['id'] = entry.key.toString();
           adminList.add(adminData);
         }
